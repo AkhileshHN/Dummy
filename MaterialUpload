@@ -1,0 +1,448 @@
+isDataAlreadySubmitted: function (component, event, helper) {
+    console.log("##### START isDataAlreadySubmitted #########");
+    var selMonth = component.get("v.selectedMonth");
+    var selYear = component.get("v.selectedYear");
+    var selCompany = component.get("v.cmpsales.Name");
+    var fileInput = component.find("file").getElement();
+    var file = fileInput.files[0];
+    var rowsExists = false;
+
+    var IsMonthDefault = component.get("v.IsMonthDefault");
+    var IsYearDefault = component.get("v.IsYearDefault");
+    var IsCompanyDefault = component.get("v.IsCompanyDefault");
+    console.log(
+      "IsCompanyDefault:::" +
+        IsCompanyDefault +
+        "selCompany:::" +
+        selCompany +
+        "IsYearDefault:::" +
+        IsYearDefault +
+        "selYear:::" +
+        selYear +
+        "IsMonthDefault::::" +
+        IsMonthDefault +
+        "selperiod:::" +
+        selMonth
+    );
+
+    if (file.size > 0) {
+      rowsExists = true;
+    }
+    if (rowsExists) {
+      component.set("v.isChunkDataSubmitted", true);
+      alert('near action');
+      var action = component.get("c.errordataSubmitted");
+      action.setParams({
+        companyArray: selCompany,
+        selmonth: selMonth,
+        selyear: selYear
+      });
+      action.setCallback(this, function (response) {
+        var state = response.getState();
+        var batchStatus;
+        var Batchstatus;
+        var isreupload = component.get("v.isReupload");
+        // alert('is reupload : '+isreupload);
+        console.log(
+          IsCompanyDefault != selCompany ||
+            IsYearDefault != selYear ||
+            IsMonthDefault != selMonth
+        );
+        console.log(
+          "IsCompanyDefault" +
+            IsCompanyDefault +
+            "@#@" +
+            "selCompany" +
+            selCompany +
+            "@#@" +
+            "IsYearDefault" +
+            IsYearDefault +
+            "@#@" +
+            "IsMonthDefault" +
+            IsMonthDefault
+        );
+
+        if (state === "SUCCESS") {
+          var fetchValue = response.getReturnValue();
+          batchStatus = fetchValue;
+          Batchstatus = component.set("v.BatchStatus", fetchValue);
+          console.log(fetchValue + ";" + batchStatus + ":" + isreupload);
+          console.log(
+            fetchValue != "" &&
+              batchStatus != "8 - Migration Success" &&
+              !isreupload
+          );
+          if (
+            fetchValue != "" &&
+            batchStatus != "8 - Migration Success" &&
+            !isreupload
+          ) {
+            component.set("v.toggleSpinner", false);
+            component.set("v.errorReupload", true);
+            component.set("v.isDataSubmitted", false);
+            helper.closeModal(component, helper);
+            var text =
+              "The Error File data as already been submitted, Please Use Re-Upload Button";
+            helper.openErrorSubmittedModal(component, event, helper, text);
+          } else if (
+            isreupload &&
+            (IsCompanyDefault != selCompany ||
+              IsYearDefault != selYear ||
+              IsMonthDefault != selMonth)
+          ) {
+            component.set("v.toggleSpinner", false);
+            component.set("v.errorReupload", true);
+            helper.closeModal(component, helper);
+            var text =
+              "The Selected Values in Dropdown does not Match with the Record Values";
+            helper.openErrorSubmittedModal(component, event, helper, text);
+          } else {
+            console.log(
+              "##### INSIDE ELSE START AFTER ERRORDATA SUBMITTED isDataAlreadySubmitted #########"
+            );
+            if (
+              (rowsExists && isreupload) ||
+              (rowsExists &&
+                (batchStatus == "" || batchStatus == "8 - Migration Success"))
+            ) {
+              var action = component.get("c.dataSubmitted");
+              action.setParams({
+                companyArray: selCompany,
+                selmonth: selMonth,
+                selyear: selYear
+              });
+              action.setCallback(this, function (response) {
+                var state = response.getState();
+                if (state === "SUCCESS") {
+                  var fetchValue = response.getReturnValue();
+                  if (fetchValue > 0) {
+                    component.set("v.toggleSpinner", false);
+                    component.set("v.isDataSubmitted", false);
+                    helper.openDataSubmittedModal(component, event, helper);
+                  } else {
+                    helper.closeModal(component, helper);
+                    // component.set("v.openBulkUploadConfirmation",true);
+                    //  helper.openBulkUploadConfirmation(component,helper);
+                    var chunk = $A.getCallback(function (results, parser) {
+                      console.log("##### INSIDE CHUNK START #########");
+                      var isreupload = component.get("v.isReupload");
+                      var selMonth = component.get("v.selectedMonth");
+                      var selYear = component.get("v.selectedYear");
+                      var selCompany = component.get("v.cmpsales.Name");
+                      var myJson = JSON.stringify(results.data);
+                      console.log("myJson:::" + myJson);
+                      var rows = results.data;
+                      var myJsonrows = JSON.stringify(rows);
+                      console.log("rows:::" + rows);
+                      console.log("myJsonrows:::" + myJsonrows);
+                      var companyrow = rows[0].Mainetti_Company__c;
+                      console.log("companyrow:::" + companyrow);
+                      var yearrow = rows[0].Year__c;
+                      console.log("yearrow:::" + yearrow);
+
+                      //  console.log('selCompany:::::'+selCompany.toLowerCase()+'selperiod:::::'+selperiod.toLowerCase()+'companyrow:::::'+companyrow.toLowerCase()+'selYear:::::'+selYear+'yearrow:::::'+yearrow);
+                      /* if(selCompany.toLowerCase() != companyrow.toLowerCase() || selperiod.toLowerCase() != periodrow.toLowerCase()  || selYear != yearrow )
+                                            {
+                                                var text = 'The Selected Values in Dropdown doesnot Match with the Uploaded File Values / The File Type is Incorrect';
+                                                helper.openErrorSubmittedModal(component, event, helper,text);
+                                                component.set("v.toggleSpinner", false);
+                                                component.set("v.parseSalesFileChunkBoolean",false);
+                                                
+                                            } */
+                      //    else{
+                      ///////////////////
+                      helper.closeModal(component, helper);
+                      component.set("v.openBulkUploadConfirmation", true);
+                      helper.openBulkUploadConfirmation(component, helper);
+                      var recordType = component.get("v.selectedRecordType");
+                      var file = component.find("file").getElement().files[0];
+                      var fileName = file.name;
+                      var fileDelimiters = component
+                        .find("fileDelimiter")
+                        .get("v.value");
+                      console.log("##### INSIDE CHUNK FileName" + fileName);
+
+                      if (rows.length >= 1) {
+                        var chunkCount = component.get("v.chunkCount");
+                        if (!parser.paused()) {
+                          parser.pause();
+                          console.log(
+                            "##### INSIDE Start Pause ChunkCount" + chunkCount
+                          );
+                        }
+                        var batchNo = component.get("v.reuploadBatchNo");
+                        component.set("v.chunkCount", chunkCount + 1);
+                        console.log("Parameters Passed");
+                        console.log("myJson", myJson);
+                        console.log("batchNo", batchNo);
+                        console.log("recordType", recordType);
+                        console.log("selCompany", selCompany);
+                        console.log("selMonth", selMonth);
+                        console.log("selYear", selYear);
+                        console.log("isreupload", isreupload);
+                        console.log("isreupload", isreupload);
+                        console.log("chunkCount", chunkCount);
+                        console.log("fileName", fileName);
+                        console.log("fileDelimiters", fileDelimiters);
+                        console.log("Parameters END");
+
+                        console.log(
+                          "##### INSIDE CHUNK BEFORE  ####CHUNK COUNT #####" +
+                            chunkCount +
+                            ":BATCHNO:::" +
+                            batchNo +
+                            ":::ROWS LENGTH:::" +
+                            rows.length
+                        );
+                        console.log(myJson);
+
+                        var action = component.get("c.insertBulkMaterial");
+                        action.setParams({
+                          jsonin: myJson,
+                          batchNo: batchNo,
+                          recordType: recordType,
+                          selComp: selCompany,
+                          selMonth: selMonth,
+                          selYear: selYear,
+                          isreupload: isreupload,
+                          chunkCount: chunkCount,
+                          fileName: fileName,
+                          fileDelimiters: fileDelimiters
+                        });
+                        action.setCallback(this, function (response) {
+                          var state = response.getState();
+                          var errors = response.getError();
+                          if (
+                            errors &&
+                            Array.isArray(errors) &&
+                            errors.length > 0
+                          ) {
+                            console.log(
+                              "error callback post creation of Master Record:" +
+                                errors[0].message
+                            );
+                            helper.openErrorModal(component, helper);
+                            return;
+                          }
+                          if (state === "SUCCESS") {
+                            var batchId = response.getReturnValue();
+                            console.log("batchId ::" + batchId);
+                            component.set("v.reuploadBatchNo", batchId);
+                            console.log(
+                              "##### INSIDE CHUNK  isDataSubmitted SUCCESS ## batchId ###### " +
+                                batchId +
+                                " ####CHUNK COUNT #####" +
+                                chunkCount
+                            );
+                            if (parser.paused()) {
+                              var isreUpload = component.get("v.isReupload");
+                              if (isreUpload) {
+                                component.set("v.isReupload", false);
+                              }
+                              parser.resume();
+                              console.log(
+                                "##### INSIDE CHUNK  RESUME #CHUNK COUNT #####" +
+                                  chunkCount
+                              );
+                              component.set(
+                                "v.parseSalesFileChunkBoolean",
+                                true
+                              );
+                            }
+                          }
+                        });
+                        $A.enqueueAction(action);
+                      } else {
+
+                      }
+                      //  }
+                    });
+
+                    var chunkComplete = $A.getCallback(function (results) {
+                      var parseSalesFileChunkComplete = component.get(
+                        "v.parseSalesFileChunkBoolean"
+                      );
+                      console.log("##### START chunkComplete   ####");
+                      if (parseSalesFileChunkComplete) {
+                        var batchNo = component.get("v.reuploadBatchNo");
+                        console.log(
+                          "##### START CHUNK COMPLETE   ####" + batchNo
+                        );
+                        var fileInput = component.find("file").getElement();
+                        var file = fileInput.files[0];
+                        var recordType = component.get("v.selectedRecordType");
+
+                        //  console.log('##### START CHUNK COMPLETE   ####'+batchNo);
+                        component.set("v.openBulkUploadConfirmation", false);
+                        helper.parseSalesFileChunk(
+                          component,
+                          file,
+                          batchNo,
+                          helper,
+                          recordType,
+                          true
+                        );
+                      }
+                    });
+
+                    var fileInput = component.find("file").getElement();
+                    var fileDelimiter = component
+                      .find("fileDelimiter")
+                      .get("v.value");
+                    var file = fileInput.files[0];
+
+                    // component.set("v.toggleSpinner", true);
+                    // Papa.LocalChunkSize = 1024*640*1;
+                    //Papa.LocalChunkSize = 1024 * 704 * 1;
+                    Papa.LocalChunkSize = 1024 * 200 * 2;
+                    // Papa.LocalChunkSize = 1024*696*1;
+                    //Papa.LocalChunkSize = 7680*1;
+                    var parser = Papa.parse(file, {
+                      delimiter: fileDelimiter,
+                      header: true,
+                      encoding: "UTF-8",
+                      beforeFirstChunk: function (chunk) {
+                        var rows = chunk.split(/\r\n|\r|\n/);
+                        var headings = rows[0].split(fileDelimiter);
+                        headings[0] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[0]
+                        );
+                        headings[1] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[1]
+                        );
+                        headings[2] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[2]
+                        );
+                        headings[3] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[3]
+                        );
+                        headings[4] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[4]
+                        );
+                        headings[5] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[5]
+                        );
+                        headings[6] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[6]
+                        );
+                        headings[7] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[7]
+                        );
+                        headings[8] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[8]
+                        );
+                        headings[9] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[9]
+                        );
+                        headings[10] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[10]
+                        );
+                        headings[11] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[11]
+                        );
+                        headings[12] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[12]
+                        );
+                        headings[13] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[13]
+                        );
+                        headings[14] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[14]
+                        );
+                        headings[15] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[15]
+                        );
+                        headings[16] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[16]
+                        );
+                        headings[17] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[17]
+                        );
+                        headings[18] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[18]
+                        );
+                        headings[19] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[19]
+                        );
+                        headings[20] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[20]
+                        );
+                        headings[21] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[21]
+                        );
+                        headings[22] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[22]
+                        );
+                        headings[23] = helper.returnSalesHeader(
+                          component,
+                          helper,
+                          headings[23]
+                        );
+
+                        rows[0] = headings.join(fileDelimiter);
+                        return rows.join("\n");
+                      },
+                      chunk: chunk,
+                      complete: chunkComplete
+                    });
+                  }
+                }
+              });
+              $A.enqueueAction(action);
+            }
+          }
+        }
+      });
+      $A.enqueueAction(action);
+      return;
+    } else {
+      component.set("v.toggleSpinner", false);
+      helper.openErrorFileFormatModal(component, event, helper);
+    }
+  },
